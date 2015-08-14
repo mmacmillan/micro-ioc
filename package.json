@@ -1,0 +1,44 @@
+{
+  "name": "micro-ioc",
+  "description": "a simple container, facilitating an IoC/DI design pattern, providing facilities to load, register, and retrieve instances of the modules/components in your application",
+  "version": "0.0.1",
+  "homepage": "https://github.com/mmacmillan/micro-ioc",
+  "author": {
+    "name": "Mike MacMillan",
+    "email": "mikejmacmillan@gmail.com"
+  },
+  "main": "ioc.js",
+  "scripts": {
+    "test": "mocha tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mmacmillan/micro-ioc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mmacmillan/micro-ioc/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/mmacmillan/micro-ioc/blob/master/LICENSE-MIT"
+    }
+  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "dependencies": {
+    "lodash": "2.4.x"
+  },
+  "devDependencies": {
+    "mocha": "2.1.x"
+  },
+  "keywords": [
+    "ioc",
+    "container",
+    "di",
+    "dependency injection",
+    "inversion of control",
+    "service locator"
+  ]
+}
