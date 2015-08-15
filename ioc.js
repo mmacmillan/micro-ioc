@@ -95,6 +95,10 @@ _.extend(ioc, events.EventEmitter.prototype, {
         return modules;
     },
 
+    clear: function() {
+        modules = {};
+    },
+
 
 
     //** Registration Methods
@@ -176,24 +180,13 @@ _.extend(ioc, events.EventEmitter.prototype, {
     //** 2 usages: define('name', { implementation }, { options }) or define('name', ['depependency1', 'dependency2'], { implementation }, { options })
     //** if the implementation is a function, it is assumed that the module is returned after executing that function (with scope)
     define: function(key, deps, obj, opt) {
-        //** gets an object from a function, given a list of dependencies; used for resolving objects that take a dependency list, and return an "instance"
-        function getObject(dependencies) {
-            var inst = _.isFunction(obj)
-                ? obj.apply(obj, _.toArray(dependencies))
-                : obj;
-
-            return opt.create && _.isFunction(opt.create)
-                ? opt.create(inst)
-                : inst;
-        }
-
         //** normalize the key
         key = (key||'').toLowerCase();
 
         //** allow the second argument to be either a dependency array, or the implementation itself
         if(!Array.isArray(deps) || !obj) {
-            obj = deps;
             opt = obj;
+            obj = deps;
             deps = [];
         }
 
@@ -220,24 +213,24 @@ _.extend(ioc, events.EventEmitter.prototype, {
                 var comp = null;
                 args = args||[];
 
-                //** dont return instances of unresolved objects
+                //** if this module appears to be unresolved, attempt to resolve it
                 if(Object.keys(this.resolved).length != this.dependencies.length) {
                     if(!this.resolve(args, context)) return;
                 }
 
-                //** return object directly, "as-is"
-                if(opt.lifetime == ioc.lifetime.object)
-                    comp = obj;
+                //** if we've already created an instance, return it
+                if(!this._instance) {
 
-                //** return the singleton, instantiating with the resolved dependencies if not yet created
-                else if(opt.lifetime == ioc.lifetime.singleton)
-                    comp = this._instance || (this._instance = getObject(this.resolved));
+                    //** obtain an "instance", which is either uses the object as-is, or invokes its factory with the resolved dependencies
+                    this._instance = _.isFunction(obj)
+                        ? obj.apply(obj, _.toArray(this.resolved))
+                        : obj;
 
-                //** return the transient instance; same as a singleton, just construct it each time its requested
-                else if(opt.lifetime == ioc.lifetime.instance)
-                    comp = getObject(this.resolved);
+                    ioc.emit('module:create', { module: this, instance: this._instance });
+                    //_.isFunction(opt.create) && opt.create(this._instance);
+                }
 
-                return comp;
+                return this._instance;
             },
 
             /**
@@ -298,4 +291,10 @@ _.extend(ioc, events.EventEmitter.prototype, {
 
 //** initialize the ioc as an eventEmitter as well; psuedo-inheritance, then expose it as the module
 events.EventEmitter.call(ioc);
+
+//** implement the AMD-js spec, supplying a define.amd object
+//** https://github.com/amdjs/amdjs-api/wiki/AMD
+define = ioc.define;
+define.amd = {};
+
 module.exports = ioc;

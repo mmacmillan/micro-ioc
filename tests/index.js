@@ -1,20 +1,103 @@
 var assert = require('assert'),
     ioc = require('../ioc.js');
 
+var messages = {
+    'no-instance': 'no object was returned for the given key'
+};
+
 describe('As a container', function() {
+
+
+    //** note: each test starts with a blank container
+    beforeEach(function() {
+        ioc.clear();
+    });
+
+    afterEach(function() {
+        ioc.removeAllListeners();
+    });
+
+
 
     it('can define a simple object', function() {
 
-        ioc.define('simple-object', {
-            name: 'a simple object'
+        define('simple-object', {
+            name: 'a simple object',
+            someFn: function() { return true }
         });
 
         var obj = ioc('simple-object');
 
-        assert(!!obj);
-        assert(!!obj.name.length > 0);
-        console.log(obj);
+
+        assert(!!obj, messages['no-instance']);
+        assert(!!obj.someFn());
     });
 
+
+    it('can define a simple object with dependencies', function() {
+
+        define('simple-object', {
+            name: 'a simple object',
+            someFn: function() { return true }
+        });
+
+        define('simple-object2', ['simple-object'], function(simpleObject) {
+            return {
+                name: 'simple object 2',
+                anotherFn: function() {
+                    return !!simpleObject.someFn();
+                }
+            }
+        });
+
+        var obj = ioc('simple-object2');
+
+        assert(!!obj, messages['no-instance']);
+        assert(!!obj.anotherFn());
+    });
+
+
+
+    it('shared dependencies are only resolved once ', function() {
+
+        //** count how many times each module is created
+        var counts = {};
+        ioc.on('module:create', function(args) {
+            !counts[args.module.key]
+                ? counts[args.module.key] = 1
+                : counts[args.module.key] += 1;
+        });
+
+
+        define('simple-object', {
+            name: 'a simple object',
+            someFn: function() { return true }
+        });
+
+        define('simple-object2', ['simple-object'], function(simpleObject) {
+            return {
+                name: 'simple object 2',
+                anotherFn: function() {
+                    return !!simpleObject.someFn();
+                }
+            }
+        });
+
+        define('simple-object3', ['simple-object2', 'simple-object'], function(simpleObject2, simpleObject) {
+            return { name: 'simple object 3', }
+        });
+
+
+        var obj = ioc('simple-object3');
+
+        assert(!!obj, messages['no-instance']);
+
+        //** ensure simple-object, although shared, is created just once
+        assert(counts['simple-object'] == 1);
+    });
+
+
+    it.skip('circular dependencies are are handled, and can be intercepted', function() {
+    });
 
 });
