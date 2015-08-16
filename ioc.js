@@ -268,6 +268,7 @@ _.extend(ioc, events.EventEmitter.prototype, {
 
                             //** circular dependencies are met with an empty object, otherwise, share the reference
                             this.resolved[dep] = !!circular ? {} : context[dep];
+                            !!circular && ioc.emit('circular', { module: this, dependency: dep });
                             return;
                         }
 

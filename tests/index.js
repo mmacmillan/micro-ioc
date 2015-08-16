@@ -69,35 +69,63 @@ describe('As a container', function() {
         });
 
 
-        define('simple-object', {
-            name: 'a simple object',
-            someFn: function() { return true }
+        define('simple-object', function() {
+            return {
+                name: 'a simple object',
+                someFn: function() { return 'one'; }
+            }
         });
 
         define('simple-object2', ['simple-object'], function(simpleObject) {
             return {
                 name: 'simple object 2',
-                anotherFn: function() {
-                    return !!simpleObject.someFn();
-                }
+                anotherFn: function() { return simpleObject.someFn() + ' two'; }
             }
         });
 
         define('simple-object3', ['simple-object2', 'simple-object'], function(simpleObject2, simpleObject) {
-            return { name: 'simple object 3', }
+            return { name: simpleObject2.anotherFn() + ' three!', }
         });
 
 
         var obj = ioc('simple-object3');
 
         assert(!!obj, messages['no-instance']);
+        assert(obj.name == 'one two three!');
 
         //** ensure simple-object, although shared, is created just once
         assert(counts['simple-object'] == 1);
     });
 
 
-    it.skip('circular dependencies are are handled, and can be intercepted', function() {
+    it('circular dependencies are are handled, and can be intercepted', function() {
+        var isCircular = false;
+
+        //** listen for the circular event, setting a flag if detected
+        ioc.on('circular', function(args) { 
+            isCircular = true;
+            //console.log('circular: ', args.module.key, args.dependency);
+        });
+
+
+        define('parent-object', ['child-object'], function(child) {
+            return { 
+                test: function() { return !!child }
+            }
+        });
+
+        define('child-object', ['parent-object'], function(parent) {
+            return { 
+                test: function() { return !!parent }
+            }
+        });
+
+
+        //** get the parent object, forcing resolution, and handling of the circular
+        var obj = ioc('parent-object');
+
+        assert(!!obj, messages['no-instance']);
+        assert(isCircular == true);
     });
 
 });
