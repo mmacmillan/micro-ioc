@@ -19,7 +19,7 @@ describe('As a container', function() {
 
 
 
-    it('can define a simple object', function() {
+    it('can define an object module', function() {
 
         define('simple-object', {
             name: 'a simple object',
@@ -28,13 +28,27 @@ describe('As a container', function() {
 
         var obj = ioc('simple-object');
 
+        assert(!!obj, messages['no-instance']);
+        assert(!!obj.someFn());
+    });
+
+    it('can define a module using a factory', function() {
+
+        define('simple-object', function() {
+            return {
+                name: 'a simple object',
+                someFn: function() { return true }
+            }
+        });
+
+        var obj = ioc('simple-object');
 
         assert(!!obj, messages['no-instance']);
         assert(!!obj.someFn());
     });
 
 
-    it('can define a simple object with dependencies', function() {
+    it('can define a module with dependencies', function() {
 
         define('simple-object', {
             name: 'a simple object',

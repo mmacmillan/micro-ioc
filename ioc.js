@@ -26,18 +26,6 @@ function ioc(key, args, context) { return ioc.instance(key, args, context) }
 
 //** extend the ioc object
 _.extend(ioc, events.EventEmitter.prototype, {
-    //** the supported lifetime types; these effect how the object is resolved
-    /*
-        object: use the object "as-is", you maintain its lifetime, container just "stores" it by key; this is the default
-        singleton: if the object is a function, it will be executed and cached only once (with dependencies if specified using amd-like syntax)
-        instance: a transient object, instantiated each time its retrieved
-    */
-    lifetime: {
-        object: 'object',
-        singleton: 'singleton',
-        instance: 'instance'
-    },
-
     initialize: function(success, error) {
         if(init) return;
 
@@ -115,39 +103,42 @@ _.extend(ioc, events.EventEmitter.prototype, {
 
         function load(p) {
             var dirs = [],
-                base = opt.key,
-                files = fs.readdirSync(p);
+                base = opt.key;
 
-            //** determine the base key path, if no key has been given
-            if(!base) {
-                base = p.replace(crane.path, '')
-                        .replace(/[\\]/g, '/')
-                        .replace(/\/\//g, '/')
-                        .replace(/^\//, '');
+            fs.readdir(p, function(err, files) {
+                if(err) throw err;
 
-                base = path.normalize(base +'/');
-            }
+                //** determine the base key path, if no key has been given
+                if(!base) {
+                    base = p.replace(crane.path, '')
+                            .replace(/[\\]/g, '/')
+                            .replace(/\/\//g, '/')
+                            .replace(/^\//, '');
 
-            files.forEach(function(name) {
-                //** queue folders for for loading if recursion is enabled
-                if(fs.statSync(p +'/'+ name).isDirectory())
-                    return opt.recurse && dirs.push(p + name +'/');
-                else {
-                    //** apply the filter to the file's name/path, returning if necessary
-                    if(('apply' in opt.filter) && !opt.filter.call(this, name)) return;
-
-                    //** require the object to see if its valid; fire the parse callback if so, then create the container key and register it.  reject objects
-                    //** that return the ioc; that means they are self-registering, and merely need be require()'d
-                    if((x = require(p +'/'+ name)) !== ioc) {
-                        var key = base + (x[opt.keyProp] || path.basename(name, '.js'));
-                        if(('apply' in opt.parse) && !opt.parse.call(this, x, key)) return;
-                        this.define(key, x, opt);
-                    }
+                    base = path.normalize(base +'/');
                 }
-            }.bind(this));
 
-            //** recurse each sub-directory
-            dirs.forEach(load.bind(this));
+                files.forEach(function(name) {
+                    //** queue folders for for loading if recursion is enabled
+                    if(fs.statSync(p +'/'+ name).isDirectory())
+                        return opt.recurse && dirs.push(p + name +'/');
+                    else {
+                        //** apply the filter to the file's name/path, returning if necessary
+                        if(('apply' in opt.filter) && !opt.filter.call(this, name)) return;
+
+                        //** require the object to see if its valid; fire the parse callback if so, then create the container key and register it.  reject objects
+                        //** that return the ioc; that means they are self-registering, and merely need be require()'d
+                        if((x = require(p +'/'+ name)) !== ioc) {
+                            var key = base + (x[opt.keyProp] || path.basename(name, '.js'));
+                            if(('apply' in opt.parse) && !opt.parse.call(this, x, key)) return;
+                            this.define(key, x, opt);
+                        }
+                    }
+                }.bind(this));
+
+                //** recurse each sub-directory
+                dirs.forEach(load.bind(this));
+            });
         }
 
         load.call(this, path.normalize((dir[0] == '/' ? dir : crane.path +'/'+ dir) +'/'));
@@ -193,20 +184,15 @@ _.extend(ioc, events.EventEmitter.prototype, {
         //** make sure dependencies are in an array
         !Array.isArray(deps) && (deps = [deps]);
 
-        _.defaults((opt = opt||{}), {
-            lifetime: ioc.lifetime.object //** objects by default, are registered as objects; not instantiated, used "as-is"
-        });
-
-        //** register the object, wrapped in a facade to facilitate resolution, given the component lifetime
+        //** register the object, wrapped in a facade to facilitate resolution
         if(modules[key] && opt.force !== true) return;
         modules[key] = {
             key: key,
-            lifetime: opt.lifetime,
             dependencies: deps,
             resolved: {},
             resolutionAttempts: 0,
 
-            //** holds a resolved instance to avoid duplicate work, for object and singletime lifetimes
+            //** holds a resolved instance to avoid duplicate work
             _instance: null,
 
             instance: function(args, context) {
