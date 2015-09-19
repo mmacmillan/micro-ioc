@@ -5,10 +5,10 @@ var messages = {
     'no-instance': 'no object was returned for the given key'
 };
 
-describe('As a container', function() {
+describe('As a Container', function() {
 
 
-    //** note: each test starts with a blank container
+    //** note: each test starts with an empty container
     beforeEach(function() {
         ioc.clear();
     });
@@ -71,6 +71,64 @@ describe('As a container', function() {
     });
 
 
+    it('can handle the event when a module is created', function() {
+        var created = false;
+
+        ioc.on('module:create', function(ctx) {
+            ctx.module.key == 'simple-object' && (created = true);
+        });
+
+
+        define('simple-object', function() {
+            return {
+                name: 'a simple object',
+                someFn: function() { return true }
+            }
+        });
+
+        var obj = ioc('simple-object');
+
+        assert(!!obj, messages['no-instance']);
+        assert(!!created);
+    });
+
+
+    it('can handle resolution errors for individual modules', function() {
+        var resolved = true;
+
+        ioc.on('resolve:error', function(ctx) {
+            if(ctx.key == 'a-missing-module')
+                resolved = false;
+        });
+
+        //** attempt to obtain an instance of a non-existing module
+        var obj = ioc('a-missing-module');
+
+        assert(!resolved);
+    });
+
+    it('can handle resolution errors for all modules when initializing the container', function() {
+        var resolved = true;
+
+        define('simple-object', {
+            name: 'a simple object'
+        });
+
+        define('cant-be-resolved', ['a-missing-module'], function(missingModule) {
+            name: 'an unresolvable module'
+        });
+
+        ioc.on('unresolved', function(modules) {
+            if(modules.length > 0 && modules[0].key == 'cant-be-resolved')
+                resolved = false;
+        });
+
+        //** initialize all the modules in the container
+        ioc.initialize()
+
+        assert(!resolved);
+    });
+
 
     it('shared dependencies are only resolved once ', function() {
 
@@ -112,13 +170,12 @@ describe('As a container', function() {
     });
 
 
-    it('circular dependencies are are handled, and can be intercepted', function() {
+    it('circular dependencies are not resolved, and can be handled', function() {
         var isCircular = false;
 
         //** listen for the circular event, setting a flag if detected
         ioc.on('circular', function(args) { 
             isCircular = true;
-            //console.log('circular: ', args.module.key, args.dependency);
         });
 
 
@@ -140,6 +197,35 @@ describe('As a container', function() {
 
         assert(!!obj, messages['no-instance']);
         assert(isCircular == true);
+    });
+
+});
+
+
+describe('As a Service Locator', function() {
+
+    //** note: each test starts with an empty container
+    beforeEach(function() {
+        ioc.clear();
+    });
+
+    afterEach(function() {
+        ioc.removeAllListeners();
+    });
+
+    it('modules can be retrieved by their name/key', function() {
+
+        define('some-module', {
+            someField: 'some value'
+        });
+
+        var obj = ioc('some-module');
+
+        assert(!!obj, messages['no-instance']);
+        assert(obj.someField == 'some value');
+    });
+
+    it.skip('a collection of modules can be retrieved by their path', function() {
     });
 
 });

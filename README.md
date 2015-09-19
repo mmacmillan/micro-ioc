@@ -45,3 +45,8 @@ micro-ioc conforms to the [AMD-js API](https://github.com/amdjs/amdjs-api/wiki/A
             }
         }
     });
+
+###Running the tests
+>mocha tests
+
+The tests provide good basic usage examples, and can help quickly understand the functionality micro-ioc intends to provide.

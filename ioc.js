@@ -33,8 +33,10 @@ _.extend(ioc, events.EventEmitter.prototype, {
         Object.keys(modules).forEach(function(m) { modules[m].resolve() })
 
         //** trigger the unresolved event if any unresolved dependencies remain
-        if(unresolved.length > 0)
-            ioc.emit('unresolved', unresolved);
+        if(unresolved.length > 0) {
+            error && error.call && error.call(unresolved);
+            return ioc.emit('unresolved', unresolved);
+        }
 
         //** fire success, trigger load
         init = true;
@@ -213,7 +215,6 @@ _.extend(ioc, events.EventEmitter.prototype, {
                         : obj;
 
                     ioc.emit('module:create', { module: this, instance: this._instance });
-                    //_.isFunction(opt.create) && opt.create(this._instance);
                 }
 
                 return this._instance;
