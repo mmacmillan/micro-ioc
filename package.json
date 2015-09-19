@@ -1,7 +1,7 @@
 {
   "name": "micro-ioc",
   "description": "a simple container, facilitating an IoC/DI design pattern, providing facilities to load, register, and retrieve instances of the modules/components in your application",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "homepage": "https://github.com/mmacmillan/micro-ioc",
   "author": {
     "name": "Mike MacMillan",
